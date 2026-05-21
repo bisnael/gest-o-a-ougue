@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão com Backup - Açougue</title>
+    <style>
+        :root {
+            --primary-color: #8b0000; /* Vermelho Açougue (Vendas) */
+            --expense-color: #2c3e50; /* Azul Escuro (Despesas) */
+            --input-color: #e67e22;   /* Laranja (Insumos/Gado) */
+            --cash-color: #27ae60;    /* Verde (Fluxo de Caixa) */
+            --border-color: #ddd;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #fafafa;
+            color: #333;
+        }
+
+        /* --- TELA DE LOGIN --- */
+        .login-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 85vh;
+        }
+
+        .login-container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            border-top: 5px solid var(--primary-color);
+        }
+
+        .login-container h2 { margin-bottom: 20px; color: #333; }
+        .login-group { text-align: left; margin-bottom: 15px; }
+        .login-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
+        .login-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+
+        .btn-login {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .login-erro { color: #d9534f; font-size: 0.9em; margin-top: 10px; display: none; font-weight: bold; }
+
+        /* --- INTERFACE DO SISTEMA --- */
+        #sistema-conteudo { display: none; }
+
+        .topo-sistema {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .topo-sistema h2 { margin: 0; color: var(--primary-color); }
+
+        .botoes-topo {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Botões de Ação Geral */
+        .btn-topo {
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-exportar { background-color: #2980b9; }
+        .btn-importar { background-color: #16a085; }
+        .btn-sair { background-color: #7f8c8d; }
+        .btn-sair:hover { background-color: #c0392b; }
+
+        /* Cards de Resumo */
+        .resumo-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center;
+            border-top: 4px solid var(--primary-color);
+        }
+        .card h3 { margin: 0; font-size: 0.85em; color: #666; }
+        .card p { margin: 10px 0 0 0; font-size: 1.2em; font-weight: bold; }
+
+        /* Abas */
+        .abas-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .aba-btn {
+            background-color: #e0e0e0;
+            color: #555;
+            border: none;
+            padding: 12px 25px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 6px 6px 0 0;
+            font-size: 1em;
+            transition: all 0.2s;
+        }
+
+        .aba-btn.ativa { background-color: var(--primary-color); color: white; }
+        .aba-btn.aba-despesa.ativa { background-color: var(--expense-color); }
+        .aba-btn.aba-insumo.ativa { background-color: var(--input-color); }
+        .aba-btn.aba-fluxo.ativa { background-color: var(--cash-color); }
+
+        .aba-conteudo { display: none; }
+        .aba-conteudo.ativa { display: block; }
+
+        /* Formulários */
+        .form-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .form-group { flex: 1; min-width: 180px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button.btn-principal {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 11px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .aba-conteudo-despesas button.btn-principal { background-color: var(--expense-color); }
+        .aba-conteudo-insumos button.btn-principal { background-color: var(--input-color); }
+        .aba-conteudo-fluxo button.btn-principal { background-color: var(--cash-color); }
+
+        /* Busca */
+        .busca-container {
+            background-color: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .busca-container input { flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1em; }
+
+        /* Tabelas */
+        .table-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
+        th { background-color: var(--primary-color); color: white; }
+        .tabela-despesas th { background-color: var(--expense-color); }
+        .tabela-insumos th { background-color: var(--input-color); }
+        .tabela-fluxo th { background-color: var(--cash-color); }
+        tr:hover { background-color: #f9f9f9; }
+
+        .status-fiado { color: #d9534f; font-weight: bold; }
+        .txt-despesa-fixa { color: #7f8c8d; font-weight: bold; }
+        .txt-despesa-casa { color: #d35400; font-weight: bold; }
+        .txt-entrada { color: #27ae60; font-weight: bold; }
+        .txt-saida { color: #c0392b; font-weight: bold; }
+
+        .btn-acao { padding: 6px 12px; font-size: 0.85em; margin-right: 5px; border-radius: 3px; border: none; cursor: pointer; font-weight: bold;}
+        .btn-editar { background-color: #f0ad4e; color: white; }
+        .btn-deletar { background-color: #d9534f; color: white; }
+        .btn-somar { background-color: #5cb85c; color: white; }
+
+        .fluxo-grade { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        @media(max-width: 768px) { .fluxo-grade { grid-template-columns: 1fr; } }
+
+        .fluxo-mini-card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TELA DE LOGIN -->
+    <div id="tela-login" class="login-wrapper">
+        <div class="login-container">
+            <h2>🥩 Acesso ao Sistema</h2>
+            <div class="login-group">
+                <label for="usuario">Usuário</label>
+                <input type="text" id="usuario" placeholder="Digite seu usuário">
+            </div>
+            <div class="login-group">
+                <label for="senha">Senha</label>
+                <input type="password" id="senha" placeholder="Digite sua senha">
+            </div>
+            <button class="btn-login" onclick="executarLogin()">Entrar no Sistema</button>
+            <div id="erro-mensagem" class="login-erro">⚠️ Usuário ou senha incorretos!</div>
+        </div>
+    </div>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div id="sistema-conteudo">
+        
+        <div class="topo-sistema">
+            <h2>🥩 Gestão Integrada - Açougue</h2>
+            
+            <div class="botoes-topo">
+                <button class="btn-topo btn-exportar" onclick="exportarBackup()" title="Baixar cópia de segurança de todos os dados">💾 Salvar Cópia (Backup)</button>
+                <button class="btn-topo btn-importar" onclick="document.getElementById('input-backup').click()" title="Restaurar dados de um arquivo antigo">📂 Restaurar Cópia</button>
+                <input type="file" id="input-backup" accept=".json" style="display: none;" onchange="importarBackup(this)">
+                <button class="btn-topo btn-sair" onclick="executarLogout()">🔓 Sair</button>
+            </div>
+        </div>
+
+        <!-- Cards de Resumo Geral -->
+        <div class="resumo-cards">
+            <div class="card" style="border-top-color: #2be613;">
+                <h3>Faturamento Total</h3>
+                <p id="total-geral">R$ 0,00</p>
+            </div>
+            <div class="card" style="border-top-color: #d9534f;">
+                <h3>Total Fiado ⚠️</h3>
+                <p id="total-fiado">R$ 0,00</p>
+            </div>
+            <div class="card" style="border-top-color: var(--expense-color);">
+                <h3>Gasto Despesas</h3>
+                <p id="total-despesas-card">R$ 0,00</p>
+            </div>
+            <div class="card" style="border-top-color: var(--input-color);">
+                <h3>Gasto Gado/Insumos</h3>
+                <p id="total-insumos-card">R$ 0,00</p>
+            </div>
+            <div class="card" id="card-lucro" style="border-top-color: var(--cash-color);">
+                <h3>Saldo em Caixa 💰</h3>
+                <p id="total-lucro">R$ 0,00</p>
+            </div>
+        </div>
+
+        <!-- Abas -->
+        <div class="abas-container">
+            <button class="aba-btn ativa" onclick="mudarAba('vendas', this)">🛒 Vendas</button>
+            <button class="aba-btn aba-despesa" onclick="mudarAba('despesas', this)">💸 Despesas Extras</button>
+            <button class="aba-btn aba-insumo" onclick="mudarAba('insumos', this)">🥩 Compras / Insumos</button>
+            <button class="aba-btn aba-fluxo" onclick="mudarAba('fluxo', this)">📊 Fluxo de Caixa</button>
+        </div>
+
+        <!-- ABA VENDAS -->
+        <div id="aba-vendas" class="aba-conteudo ativa">
+            <div class="form-container">
+                <input type="hidden" id="venda-id">
+                <input type="hidden" id="venda-valor-antigo">
+                <div class="form-group">
+                    <label for="cliente">Nome do Cliente</label>
+                    <input type="text" id="cliente" placeholder="Ex: João Silva">
+                </div>
+                <div class="form-group">
+                    <label for="valor" id="label-valor">Valor (R$)</label>
+                    <input type="number" id="valor" step="0.01" placeholder="0,00">
+                </div>
+                <div class="form-group">
+                    <label for="pagamento">Forma de Pagamento</label>
+                    <select id="pagamento">
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="Pix">Pix</option>
+                        <option value="Cartão">Cartão</option>
+                        <option value="Fiado">Fiado</option>
+                    </select>
+                </div>
+                <button id="btn-salvar-venda" class="btn-principal" onclick="salvarVenda(false)">Lançar Venda</button>
+                <button id="btn-somar-venda" class="btn-principal btn-somar" style="display: none;" onclick="salvarVenda(true)">Somar ao Valor Atual</button>
+                <button id="btn-cancelar-venda" style="background-color: #777; display: none;" class="btn-acao" onclick="cancelarEdicaoVenda()">Cancelar</button>
+            </div>
+
+            <div class="busca-container">
+                <strong>🔍 Pesquisar Cliente:</strong>
+                <input type="text" id="busca-cliente" placeholder="Digite o nome do cliente..." oninput="atualizarTela()">
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Última Atualização</th>
+                            <th>Cliente</th>
+                            <th>Valor Total</th>
+                            <th>Forma de Pagamento</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpo-tabela-vendas"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ABA DESPESAS -->
+        <div id="aba-despesas" class="aba-conteudo aba-conteudo-despesas">
+            <div class="form-container">
+                <input type="hidden" id="despesa-id">
+                <div class="form-group">
+                    <label for="despesa-descricao">Descrição da Despesa</label>
+                    <input type="text" id="despesa-descricao" placeholder="Ex: Conta de Luz, Internet">
+                </div>
+                <div class="form-group">
+                    <label for="despesa-valor">Valor (R$)</label>
+                    <input type="number" id="despesa-valor" step="0.01" placeholder="0,00">
+                </div>
+                <div class="form-group">
+                    <label for="despesa-tipo">Tipo de Despesa</label>
+                    <select id="despesa-tipo">
+                        <option value="Fixa Açougue">Fixa Açougue (Aluguel, Luz...)</option>
+                        <option value="Despesa de Casa">Despesa de Casa (Uso Pessoal...)</option>
+                    </select>
+                </div>
+                <button id="btn-salvar-despesa" class="btn-principal" onclick="salvarDespesa()">Lançar Despesa</button>
+                <button id="btn-cancelar-despesa" style="background-color: #777; display: none;" class="btn-acao" onclick="cancelarEdicaoDespesa()">Cancelar</button>
+            </div>
+
+            <div class="table-container">
+                <table class="tabela-despesas">
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Descrição</th>
+                            <th>Valor</th>
+                            <th>Tipo de Despesa</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpo-tabela-despesas"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ABA COMPRAS / INSUMOS -->
+        <div id="aba-insumos" class="aba-conteudo aba-conteudo-insumos">
+            <div class="form-container">
+                <input type="hidden" id="insumo-id">
+                <div class="form-group">
+                    <label for="insumo-fornecedor">Fornecedor / Produtor</label>
+                    <input type="text" id="insumo-fornecedor" placeholder="Ex: Chácara São José">
+                </div>
+                <div class="form-group">
+                    <label for="insumo-item">Item Comprado</label>
+                    <input type="text" id="insumo-item" placeholder="Ex: 1 Boi Inteiro">
+                </div>
+                <div class="form-group">
+                    <label for="insumo-peso">Peso Total (kg) <small>(Opcional)</small></label>
+                    <input type="number" id="insumo-peso" step="0.01" placeholder="Ex: 280">
+                </div>
+                <div class="form-group">
+                    <label for="insumo-valor">Valor Pago (R$)</label>
+                    <input type="number" id="insumo-valor" step="0.01" placeholder="0,00">
+                </div>
+                <button id="btn-salvar-insumo" class="btn-principal" onclick="salvarInsumo()">Lançar Compra</button>
+                <button id="btn-cancelar-insumo" style="background-color: #777; display: none;" class="btn-acao" onclick="cancelarEdicaoInsumo()">Cancelar</button>
+            </div>
+
+            <div class="table-container">
+                <table class="tabela-insumos">
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Fornecedor</th>
+                            <th>Item</th>
+                            <th>Peso (kg)</th>
+                            <th>Valor Total</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpo-tabela-insumos"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ABA FLUXO DE CAIXA -->
+        <div id="aba-fluxo" class="aba-conteudo aba-conteudo-fluxo">
+            <div class="fluxo-grade">
+                <div>
+                    <div class="form-container" style="padding: 15px; margin-bottom: 15px;">
+                        <h4 style="margin: 0 0 10px 0; width: 100%; color: var(--cash-color);">💸 Registrar Retirada / Sangria</h4>
+                        <div class="form-group" style="min-width: 100%;">
+                            <label for="fluxo-obs">Motivo da Retirada</label>
+                            <input type="text" id="fluxo-obs" placeholder="Ex: Retirada Proprietário">
+                        </div>
+                        <div class="form-group" style="min-width: 100%; margin-top: 5px;">
+                            <label for="fluxo-valor">Valor Retirado (R$)</label>
+                            <input type="number" id="fluxo-valor" step="0.01" placeholder="0,00">
+                        </div>
+                        <button class="btn-principal" style="width: 100%; margin-top: 10px;" onclick="lancarSangria()">Lançar Retirada</button>
+                    </div>
+
+                    <div class="fluxo-mini-card">
+                        <span>💵 Entradas em Caixa (Reais):</span>
+                        <strong id="fluxo-entradas-reais" style="color: #27ae60;">R$ 0,00</strong>
+                    </div>
+                    <div class="fluxo-mini-card">
+                        <span>⚠️ Entradas Pendentes (Fiado):</span>
+                        <strong id="fluxo-entradas-fiado" style="color: #e67e22;">R$ 0,00</strong>
+                    </div>
+                    <div class="fluxo-mini-card">
+                        <span>📉 Total Saídas:</span>
+                        <strong id="fluxo-saidas-totais" style="color: #c0392b;">R$ 0,00</strong>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <h3 style="margin-top: 0; color: var(--cash-color);">📋 Extrato de Movimentações Diárias</h3>
+                    <table class="tabela-fluxo">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Tipo</th>
+                                <th>Descrição / Origem</th>
+                                <th>Valor</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpo-tabela-fluxo"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const USUARIO_CORRETO = "admin";
+        const SENHA_CORRETA = "1234";
+
+        let vendas = JSON.parse(localStorage.getItem('vendas_acougue')) || [];
+        let despesas = JSON.parse(localStorage.getItem('despesas_acougue')) || [];
+        let insumos = JSON.parse(localStorage.getItem('insumos_acougue')) || [];
+        let sangrias = JSON.parse(localStorage.getItem('sangrias_acougue')) || [];
+
+        verificarSessao();
+
+        function verificarSessao() {
+            if (sessionStorage.getItem('acougue_logado') === 'true') {
+                document.getElementById('tela-login').style.display = 'none';
+                document.getElementById('sistema-conteudo').style.display = 'block';
+                atualizarTela();
+            } else {
+                document.getElementById('tela-login').style.display = 'flex';
+                document.getElementById('sistema-conteudo').style.display = 'none';
+            }
+        }
+
+        function executarLogin() {
+            const userIn = document.getElementById('usuario').value;
+            const passIn = document.getElementById('senha').value;
+            if (userIn === USUARIO_CORRETO && passIn === SENHA_CORRETA) {
+                document.getElementById('erro-mensagem').style.display = 'none';
+                sessionStorage.setItem('acougue_logado', 'true');
+                document.getElementById('usuario').value = '';
+                document.getElementById('senha').value = '';
+                verificarSessao();
+            } else {
+                document.getElementById('erro-mensagem').style.display = 'block';
+            }
+        }
+
+        function executarLogout() {
+            sessionStorage.removeItem('acougue_logado');
+            verificarSessao();
+        }
+
+        document.getElementById('senha').addEventListener('keypress', function(e) {
+            if(e.key === 'Enter') executarLogin();
+        });
+
+        // --- SISTEMA DE BACKUP (EXPORTAR / IMPORTAR) ---
+        function exportarBackup() {
+            // Reúne todas as listas estruturadas em um único objeto de texto
+            const dadosBackup = {
+                vendas: vendas,
+                despesas: despesas,
+                insumos: insumos,
+                sangrias: sangrias
+            };
+
+            const dataAtual = new Date().toLocaleDateString('pt-BR').replaceAll('/', '-');
+            const nomeArquivo = `backup_caixa_acougue_${dataAtual}.json`;
+            
+            // Força o navegador a baixar o arquivo texto com os dados
+            const blob = new Blob([JSON.stringify(dadosBackup, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = nomeArquivo;
+            link.click();
+        }
+
+        function importarBackup(input) {
+            const arquivo = input.files[0];
+            if (!arquivo) return;
+
+            const leitor = new FileReader();
+            leitor.onload = function(e) {
+                try {
+                    const dadosImportados = JSON.parse(e.target.result);
+                    
+                    if (confirm("⚠️ Atenção: Isso irá substituir os dados atuais na tela pelos dados do arquivo carregado. Deseja continuar?")) {
+                        vendas = dadosImportados.vendas || [];
+                        despesas = dadosImportados.despesas || [];
+                        insumos = dadosImportados.insumos || [];
+                        sangrias = dadosImportados.sangrias || [];
+
+                        // Salva imediatamente no LocalStorage local
+                        localStorage.setItem('vendas_acougue', JSON.stringify(vendas));
+                        localStorage.setItem('despesas_acougue', JSON.stringify(despesas));
+                        localStorage.setItem('insumos_acougue', JSON.stringify(insumos));
+                        localStorage.setItem('sangrias_acougue', JSON.stringify(sangrias));
+
+                        alert("✅ Dados restaurados com sucesso!");
+                        atualizarTela();
+                    }
+                } catch (erro) {
+                    alert("❌ Erro ao ler o arquivo. Certifique-se de escolher o arquivo correto baixado pelo sistema.");
+                }
+            };
+            leitor.readAsText(arquivo);
+            input.value = ''; // Limpa o input de arquivo
+        }
+
+        function mudarAba(aba, botao) {
+            document.querySelectorAll('.aba-conteudo').forEach(c => c.classList.remove('ativa'));
+            document.querySelectorAll('.aba-btn').forEach(b => b.classList.remove('ativa'));
+            document.getElementById('aba-' + aba).classList.add('ativa');
+            botao.classList.add('ativa');
+        }
+
+        function formatarReal(valor) {
+            return `R$ ${valor.toFixed(2).replace('.', ',')}`;
+        }
+
+        /* --- VENDAS --- */
+        function salvarVenda(eSoma = false) {
+            const idInput = document.getElementById('venda-id');
+            const valorAntigoInput = document.getElementById('venda-valor-antigo');
+            const clienteInput = document.getElementById('cliente');
+            const valorInput = document.getElementById('valor');
+            const pagamentoInput = document.getElementById('pagamento');
+
+            if (!clienteInput.value || !valorInput.value) return alert("Preencha os campos!");
+            let valorDigitado = parseFloat(valorInput.value);
+
+            if (idInput.value) {
+                const index = vendas.findIndex(v => v.id === parseInt(idInput.value));
+                if (index !== -1) {
+                    vendas[index].cliente = clienteInput.value;
+                    vendas[index].pagamento = pagamentoInput.value;
+                    vendas[index].data = new Date().toLocaleString('pt-BR');
+                    vendas[index].valor = eSoma ? (parseFloat(valorAntigoInput.value) + valorDigitado) : valorDigitado;
+                }
+                cancelarEdicaoVenda();
+            } else {
+                vendas.push({ id: Date.now(), data: new Date().toLocaleString('pt-BR'), cliente: clienteInput.value, valor: valorDigitado, pagamento: pagamentoInput.value });
+            }
+            localStorage.setItem('vendas_acougue', JSON.stringify(vendas));
+            atualizarTela();
+            clienteInput.value = ''; valorInput.value = ''; clienteInput.focus();
+        }
+
+        function prepararEdicaoVenda(id) {
+            const v = vendas.find(v => v.id === id);
+            if (!v) return;
+            document.getElementById('venda-id').value = v.id;
+            document.getElementById('venda-valor-antigo').value = v.valor;
+            document.getElementById('cliente').value = v.cliente;
+            document.getElementById('valor').value = v.valor;
+            document.getElementById('label-valor').innerHTML = `Valor (R$) <small style='color:blue'>(Atual: ${formatarReal(v.valor)})</small>`;
+            document.getElementById('pagamento').value = v.pagamento;
+            document.getElementById('btn-salvar-venda').innerText = 'Substituir Valor';
+            document.getElementById('btn-somar-venda').style.display = 'inline-block';
+            document.getElementById('btn-cancelar-venda').style.display = 'inline-block';
+        }
+
+        function cancelarEdicaoVenda() {
+            document.getElementById('venda-id').value = '';
+            document.getElementById('venda-valor-antigo').value = '';
+            document.getElementById('cliente').value = '';
+            document.getElementById('valor').value = '';
+            document.getElementById('label-valor').innerText = "Valor (R$)";
+            document.getElementById('btn-salvar-venda').innerText = 'Lançar Venda';
+            document.getElementById('btn-somar-venda').style.display = 'none';
+            document.getElementById('btn-cancelar-venda').style.display = 'none';
+        }
+
+        function deletarVenda(id) {
+            if(confirm("Apagar esta venda?")) {
+                vendas = vendas.filter(v => v.id !== id);
+                localStorage.setItem('vendas_acougue', JSON.stringify(vendas));
+                atualizarTela();
+            }
+        }
+
+        /* --- DESPESAS --- */
+        function salvarDespesa() {
+            const idInput = document.getElementById('despesa-id');
+            const descInput = document.getElementById('despesa-descricao');
+            const valorInput = document.getElementById('despesa-valor');
+            const tipoSelect = document.getElementById('despesa-tipo');
+
+            if (!descInput.value || !valorInput.value) return alert("Preencha os campos!");
+
+            if (idInput.value) {
+                const index = despesas.findIndex(d => d.id === parseInt(idInput.value));
+                if (index !== -1) {
+                    despesas[index].descricao = descInput.value;
+                    despesas[index].valor = parseFloat(valorInput.value);
+                    despesas[index].tipo = tipoSelect.value;
+                }
+                cancelarEdicaoDespesa();
+            } else {
+                despesas.push({ id: Date.now(), data: new Date().toLocaleString('pt-BR'), descricao: descInput.value, valor: parseFloat(valorInput.value), tipo: tipoSelect.value });
+            }
+            localStorage.setItem('despesas_acougue', JSON.stringify(despesas));
+            atualizarTela();
+            descInput.value = ''; valorInput.value = '';
+        }
+
+        function prepararEdicaoDespesa(id) {
+            const d = despesas.find(d => d.id === id);
+            if (!d) return;
+            document.getElementById('despesa-id').value = d.id;
+            document.getElementById('despesa-descricao').value = d.descricao;
+            document.getElementById('despesa-valor').value = d.valor;
+            document.getElementById('despesa-tipo').value = d.tipo;
+            document.getElementById('btn-salvar-despesa').innerText = 'Confirmar Alteração';
+            document.getElementById('btn-cancelar-despesa').style.display = 'inline-block';
+        }
+
+        function cancelarEdicaoDespesa() {
+            document.getElementById('despesa-id').value = '';
+            document.getElementById('despesa-descricao').value = '';
+            document.getElementById('despesa-valor').value = '';
+            document.getElementById('btn-salvar-despesa').innerText = 'Lançar Despesa';
+            document.getElementById('btn-cancelar-despesa').style.display = 'none';
+        }
+
+        function deletarDespesa(id) {
+            if(confirm("Apagar esta despesa?")) {
+                despesas = despesas.filter(d => d.id !== id);
+                localStorage.setItem('despesas_acougue', JSON.stringify(despesas));
+                atualizarTela();
+            }
+        }
+
+        /* --- INSUMOS --- */
+        function salvarInsumo() {
+            const idInput = document.getElementById('insumo-id');
+            const fornecedorInput = document.getElementById('insumo-fornecedor');
+            const itemInput = document.getElementById('insumo-item');
+            const pesoInput = document.getElementById('insumo-peso');
+            const valorInput = document.getElementById('insumo-valor');
+
+            if (!fornecedorInput.value || !itemInput.value || !valorInput.value) return alert("Preencha fornecedor, item e valor!");
+
+            if (idInput.value) {
+                const index = insumos.findIndex(i => i.id === parseInt(idInput.value));
+                if (index !== -1) {
+                    insumos[index].fornecedor = fornecedorInput.value;
+                    insumos[index].item = itemInput.value;
+                    insumos[index].peso = pesoInput.value ? parseFloat(pesoInput.value) : "";
+                    insumos[index].valor = parseFloat(valorInput.value);
+                }
+                cancelarEdicaoInsumo();
+            } else {
+                insumos.push({ id: Date.now(), data: new Date().toLocaleString('pt-BR'), fornecedor: fornecedorInput.value, item: itemInput.value, peso: pesoInput.value ? parseFloat(pesoInput.value) : "", valor: parseFloat(valorInput.value) });
+            }
+            localStorage.setItem('insumos_acougue', JSON.stringify(insumos));
+            atualizarTela();
+            fornecedorInput.value = ''; itemInput.value = ''; pesoInput.value = ''; valorInput.value = '';
+        }
+
+        function prepararEdicaoInsumo(id) {
+            const i = insumos.find(i => i.id === id);
+            if (!i) return;
+            document.getElementById('insumo-id').value = i.id;
+            document.getElementById('insumo-fornecedor').value = i.fornecedor;
+            document.getElementById('insumo-item').value = i.item;
+            document.getElementById('insumo-peso').value = i.peso;
+            document.getElementById('insumo-valor').value = i.valor;
+            document.getElementById('btn-salvar-insumo').innerText = 'Confirmar Alteração';
+            document.getElementById('btn-cancelar-insumo').style.display = 'inline-block';
+        }
+
+        function cancelarEdicaoInsumo() {
+            document.getElementById('insumo-id').value = '';
+            document.getElementById('insumo-fornecedor').value = '';
+            document.getElementById('insumo-item').value = '';
+            document.getElementById('insumo-peso').value = '';
+            document.getElementById('insumo-valor').value = '';
+            document.getElementById('btn-salvar-insumo').innerText = 'Lançar Compras';
+            document.getElementById('btn-cancelar-insumo').style.display = 'none';
+        }
+
+        function deletarInsumo(id) {
+            if(confirm("Apagar esta compra?")) {
+                insumos = insumos.filter(i => i.id !== id);
+                localStorage.setItem('insumos_acougue', JSON.stringify(insumos));
+                atualizarTela();
+            }
+        }
+
+        /* --- SANGRIAS --- */
+        function lancarSangria() {
+            const obs = document.getElementById('fluxo-obs').value;
+            const val = document.getElementById('fluxo-valor').value;
+            if(!obs || !val) return alert("Preencha o motivo e o valor!");
+            
+            sangrias.push({ id: Date.now(), data: new Date().toLocaleString('pt-BR'), descricao: "Retirada: " + obs, valor: parseFloat(val) });
+            localStorage.setItem('sangrias_acougue', JSON.stringify(sangrias));
+            document.getElementById('fluxo-obs').value = ''; document.getElementById('fluxo-valor').value = '';
+            atualizarTela();
+        }
+
+        function deletarSangria(id) {
+            if(confirm("Apagar este registro de retirada?")) {
+                sangrias = sangrias.filter(s => s.id !== id);
+                localStorage.setItem('sangrias_acougue', JSON.stringify(sangrias));
+                atualizarTela();
+            }
+        }
+
+        /* --- ATUALIZAÇÃO DA TELA --- */
+        function atualizarTela() {
+            if(sessionStorage.getItem('acougue_logado') !== 'true') return;
+
+            const tabelaVendas = document.getElementById('corpo-tabela-vendas');
+            const tabelaDespesas = document.getElementById('corpo-tabela-despesas');
+            const tableInsumos = document.getElementById('corpo-tabela-insumos');
+            const tabelaFluxo = document.getElementById('corpo-tabela-fluxo');
+            const buscaCliente = document.getElementById('busca-cliente').value.toLowerCase();
+            
+            tabelaVendas.innerHTML = ''; tabelaDespesas.innerHTML = ''; tableInsumos.innerHTML = ''; tabelaFluxo.innerHTML = '';
+
+            let totalFaturamento = 0; let totalFiado = 0; let totalDespesas = 0; let totalInsumos = 0; let totalSangrias = 0;
+            let listaFluxoGeral = [];
+
+            // Vendas
+            vendas.forEach(v => {
+                totalFaturamento += v.valor;
+                if (v.pagamento === 'Fiado') totalFiado += v.valor;
+                listaFluxoGeral.push({ dataOriginal: v.id, dataStr: v.data, tipo: v.pagamento === 'Fiado' ? 'Fiado (Pendente)' : 'Entrada', desc: `Venda para: ${v.cliente} (${v.pagamento})`, valor: v.valor, classe: 'txt-entrada', acaoHtml: `---` });
+            });
+            vendas.slice().reverse().forEach(v => {
+                if (buscaCliente && !v.cliente.toLowerCase().includes(buscaCliente)) return;
+                const classeFiado = v.pagamento === 'Fiado' ? 'class="status-fiado"' : '';
+                tabelaVendas.innerHTML += `<tr><td>${v.data}</td><td>${v.cliente}</td><td>${formatarReal(v.valor)}</td><td ${classeFiado}>${v.pagamento}</td><td><button class="btn-acao btn-editar" onclick="prepararEdicaoVenda(${v.id})">Editar</button><button class="btn-acao btn-deletar" onclick="deletarVenda(${v.id})">X</button></td></tr>`;
+            });
+
+            // Despesas
+            despesas.forEach(d => {
+                totalDespesas += d.valor;
+                listaFluxoGeral.push({ dataOriginal: d.id, dataStr: d.data, tipo: 'Saída', desc: `${d.descricao} (${d.tipo})`, valor: d.valor, classe: 'txt-saida', acaoHtml: `---` });
+            });
+            despesas.slice().reverse().forEach(d => {
+                const classeTipo = d.tipo === 'Fixa Açougue' ? 'class="txt-despesa-fixa"' : 'class="txt-despesa-casa"';
+                tabelaDespesas.innerHTML += `<tr><td>${d.data}</td><td>${d.descricao}</td><td>${formatarReal(d.valor)}</td><td ${classeTipo}>${d.tipo}</td><td><button class="btn-acao btn-editar" onclick="prepararEdicaoDespesa(${d.id})">Editar</button><button class="btn-acao btn-deletar" onclick="deletarDespesa(${d.id})">X</button></td></tr>`;
+            });
+
+            // Insumos
+            insumos.forEach(i => {
+                totalInsumos += i.valor;
+                listaFluxoGeral.push({ dataOriginal: i.id, dataStr: i.data, tipo: 'Saída', desc: `Compra: ${i.item} (Forn: ${i.fornecedor})`, valor: i.valor, classe: 'txt-saida', acaoHtml: `---` });
+            });
+            insumos.slice().reverse().forEach(i => {
+                const pesoFormatado = i.peso ? `${i.peso.toString().replace('.', ',')} kg` : '-';
+                tableInsumos.innerHTML += `<tr><td>${i.data}</td><td>${i.fornecedor}</td><td>${i.item}</td><td>${pesoFormatado}</td><td>${formatarReal(i.valor)}</td><td><button class="btn-acao btn-editar" onclick="prepararEdicaoInsumo(${i.id})">Editar</button><button class="btn-acao btn-deletar" onclick="deletarInsumo(${i.id})">X</button></td></tr>`;
+            });
+
+            // Sangrias
+            sangrias.forEach(s => {
+                totalSangrias += s.valor;
+                listaFluxoGeral.push({ dataOriginal: s.id, dataStr: s.data, tipo: 'Saída', desc: s.descricao, valor: s.valor, classe: 'txt-saida', acaoHtml: `<button class="btn-acao btn-deletar" onclick="deletarSangria(${s.id})">X</button>` });
+            });
+
+            // Montar Tabela Fluxo
+            listaFluxoGeral.sort((a,b) => b.dataOriginal - a.dataOriginal);
+            listaFluxoGeral.forEach(item => {
+                tabelaFluxo.innerHTML += `<tr><td>${item.dataStr}</td><td class="${item.classe}">${item.tipo}</td><td>${item.desc}</td><td>${formatarReal(item.valor)}</td><td>${item.acaoHtml}</td></tr>`;
+            });
+
+            let totalEntradasReais = totalFaturamento - totalFiado;
+            let totalSaidasTodas = totalDespesas + totalInsumos + totalSangrias;
+            let saldoEmCaixaReal = totalEntradasReais - totalSaidasTodas;
+
+            document.getElementById('total-geral').innerText = formatarReal(totalFaturamento);
+            document.getElementById('total-fiado').innerText = formatarReal(totalFiado);
+            document.getElementById('total-despesas-card').innerText = formatarReal(totalDespesas);
+            document.getElementById('total-insumos-card').innerText = formatarReal(totalInsumos);
+            document.getElementById('total-lucro').innerText = formatarReal(saldoEmCaixaReal);
+            document.getElementById('fluxo-entradas-reais').innerText = formatarReal(totalEntradasReais);
+            document.getElementById('fluxo-entradas-fiado').innerText = formatarReal(totalFiado);
+            document.getElementById('fluxo-saidas-totais').innerText = formatarReal(totalSaidasTodas);
+
+            const cardLucro = document.getElementById('card-lucro');
+            cardLucro.style.borderTopColor = saldoEmCaixaReal < 0 ? '#d9534f' : 'var(--cash-color)';
+        }
+    </script>
+</body>
+</html>
